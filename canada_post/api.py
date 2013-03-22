@@ -2,7 +2,7 @@
 Central API module
 """
 from canada_post import PROD, Auth
-from canada_post.service.contract_shipping import (CreateShipment, VoidShipment)
+from canada_post.service.shipping import (CreateShipment, VoidShipment)
 from canada_post.service.rating import (GetRates)
 
 class CanadaPostAPI(object):
