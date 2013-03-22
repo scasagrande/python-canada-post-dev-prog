@@ -1,5 +1,5 @@
 """
-ContractShipping Canada Post API
+Shipping Canada Post API
 https://www.canadapost.ca/cpo/mc/business/productsservices/developers/services/shippingmanifest/default.jsf
 """
 import logging
@@ -52,13 +52,23 @@ class CreateShipment(ServiceBase):
     CreateShipment Canada Post API (for ContractShipping)
     https://www.canadapost.ca/cpo/mc/business/productsservices/developers/services/shippingmanifest/createshipment.jsf
     """
-    URL ="https://{server}/rs/{customer}/{mobo}/shipment"
     log = logging.getLogger('canada_post.service.contract_shipping'
-                            '.CreateShipment')
+                        '.CreateShipment')
+        
     def __init__(self, auth, url=None):
         if url:
             self.URL = url
         super(CreateShipment, self).__init__(auth)
+        if self.auth.contract_number is "":
+            self.hasContract = False
+        else:
+            self.hasContract = True
+        self.log.info("Has contract: %s", self.hasContract)
+        
+        if self.hasContract:    
+            self.URL = "https://{server}/rs/{customer}/{mobo}/shipment"
+        else:
+            self.URL = "https://{server}/rs/{customer}/ncshipment"
 
     def set_link(self, url):
         """
@@ -67,11 +77,15 @@ class CreateShipment(ServiceBase):
         self.URL = url
 
     def get_url(self):
-        return self.URL.format(server=self.get_server(),
-                               customer=self.auth.customer_number,
-                               mobo=self.auth.customer_number)
+        if self.hasContract:
+            return self.URL.format(server=self.get_server(),
+                                   customer=self.auth.customer_number,
+                                   mobo=self.auth.customer_number)
+        else:
+            return self.URL.format(server=self.get_server(),
+                                   customer=self.auth.customer_number)
 
-    def _create_address_detail(self, parent, address, add_child):
+    def _create_address_detail(self, parent, address, add_child, isSender=False):
         """
         Creates the address detail part of the request. You need to do any
         checks outside of this call
@@ -82,7 +96,8 @@ class CreateShipment(ServiceBase):
         add_child("city", addr_detail).text = address.city
         if address.province:
             add_child("prov-state", addr_detail).text = address.province
-        add_child("country-code", addr_detail).text = address.country_code
+        if (isSender and self.hasContract) or not isSender:
+            add_child("country-code", addr_detail).text = address.country_code
         if address.postal_code:
             add_child("postal-zip-code",
                       addr_detail).text = unicode(address.postal_code)
@@ -109,13 +124,25 @@ class CreateShipment(ServiceBase):
         self.log.info(("Create shipping for parcel %s, from %s to %s{debug}"
                        .format(debug=debug)), parcel, origin, destination)
 
-        # shipment
-        shipment = etree.Element(
-            "shipment", xmlns="http://www.canadapost.ca/ws/shipment")
+        # Shipment XML Body start
+        if self.hasContract:
+            shipment = etree.Element(
+                "shipment", xmlns="http://www.canadapost.ca/ws/shipment")
+        else:
+            shipment = etree.Element(
+                "non-contract-shipment", xmlns="http://www.canadapost.ca/ws/ncshipment")
+                
         def add_child(child_name, parent=shipment):
+            '''
+            Function to add children to a parent etree element.
+            Defaults to the parent being the root element
+            '''
             return etree.SubElement(parent, child_name)
-        add_child("group-id").text = group
-        add_child("requested-shipping-point").text = unicode(origin.postal_code)
+        
+        if self.hasContract:    
+            add_child("group-id").text = group
+            add_child("requested-shipping-point").text = unicode(origin.postal_code)
+        
         delivery_spec = add_child("delivery-spec")
         add_child("service-code", delivery_spec).text = service.code
 
@@ -124,18 +151,20 @@ class CreateShipment(ServiceBase):
         if origin.name:
             add_child("name", sender).text = origin.name
         assert origin.company, ("The sender needs a company name for "
-                                "Contract Shipping service")
+                                "Shipping service")
         add_child("company", sender).text = origin.company
         assert origin.phone, ("The sender needs a phone for "
-                              "Contact Shipping Service")
+                              "Shipping Service")
         add_child("contact-phone", sender).text = origin.phone
 
-        #destination details, first assertions
+        #sender address details, first assertions
         assert any((origin.address1, origin.address2)), (
             "The sender needs an address to Create Shipping")
         assert origin.city, "Need the sender's city to Create Shipping"
         assert origin.province, "Need the sender's province to Create Shipping"
-        sender_details = self._create_address_detail(sender, origin, add_child)
+        if not self.hasContract and origin.postal_code is "":
+            raise ValueError("Need the sender's postal code for non-contract shipping")
+        sender_details = self._create_address_detail(sender, origin, add_child, isSender = True)
         # done sender
 
         # destination
@@ -170,7 +199,7 @@ class CreateShipment(ServiceBase):
             assert destination.country_code not in ("CA", "US"), (
                 "Country code is required for international shippings")
         # and then creation
-        dest_details = self._create_address_detail(dest, destination, add_child)
+        dest_details = self._create_address_detail(dest, destination, add_child, isSender = False)
         # done destination
 
         # TODO: options
@@ -203,20 +232,28 @@ class CreateShipment(ServiceBase):
         add_child("show-insured-value", preferences).text = "false"
 
         # settlement-info
-        settlement = add_child("settlement-info", delivery_spec)
-        # TODO: set paid-by-customer if a different customer is paying for this
-        #add_child("paid-by-customer", settlement).text = FOOBAR
-        assert self.auth.contract_number, ("Must have a contract number for "
-                                           "contract shipping")
-        add_child("contract-id", settlement).text = self.auth.contract_number
-        # TODO: can be CreditCard as well
-        add_child("intended-method-of-payment", settlement).text = "Account"
+        if self.hasContract:
+            settlement = add_child("settlement-info", delivery_spec)
+            # TODO: set paid-by-customer if a different customer is paying for this
+            #add_child("paid-by-customer", settlement).text = FOOBAR
+            assert self.auth.contract_number, ("Must have a contract number for "
+                                               "contract shipping")
+            add_child("contract-id", settlement).text = self.auth.contract_number
+            # TODO: can be CreditCard as well
+            add_child("intended-method-of-payment", settlement).text = "Account"
 
-        headers = {
-            'Accept': "application/vnd.cpc.shipment-v2+xml",
-            'Content-type': "application/vnd.cpc.shipment-v2+xml",
-            'Accept-language': "en-CA",
-        }
+        if self.hasContract:
+            headers = {
+                'Accept': "application/vnd.cpc.shipment-v2+xml",
+                'Content-type': "application/vnd.cpc.shipment-v2+xml",
+                'Accept-language': "en-CA",
+            }
+        else:
+            headers = {
+                'Accept': "application/vnd.cpc.ncshipment+xml",
+                'Content-type': "application/vnd.cpc.ncshipment+xml",
+                'Accept-language': "en-CA",
+            }
         url = self.get_url()
         self.log.info("Using url %s", url)
         request = etree.tostring(shipment, pretty_print=self.auth.debug)
