@@ -5,6 +5,7 @@ https://www.canadapost.ca/cpo/mc/business/productsservices/developers/services/s
 import logging
 from lxml import etree
 import requests
+import subprocess
 from canada_post.service import ServiceBase, CallLinkService
 from canada_post.util import InfoObject
 
@@ -22,7 +23,8 @@ class Shipment(InfoObject):
          'href' which is the link, the same 'rel' value and some other
          attributes, depending on each link
     """
-    def __init__(self, xml=None, **kwargs):
+    def __init__(self, auth, xml=None, **kwargs):
+        self.auth = auth
         if xml is not None:
             self._from_xml(xml)
         super(Shipment, self).__init__(**kwargs)
@@ -46,6 +48,11 @@ class Shipment(InfoObject):
                 attrname = child.tag.replace("-", "_")
                 setattr(self, attrname, child.text)
 
+    def printLabel(self):
+        label = requests.get(self.links['label']['href'], auth=(self.auth.username,self.auth.password))
+        #TODO: Guard against failures with above GET
+        p = subprocess.Popen("lpr", stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        p.communicate(input=label.content)
 
 class CreateShipment(ServiceBase):
     """
@@ -270,7 +277,7 @@ class CreateShipment(ServiceBase):
         #breaks xpath lookup in lxml
         restree = etree.XML(response.content.replace(' xmlns="',
                                                      ' xmlnamespace="'))
-        return Shipment(xml=restree)
+        return Shipment(auth=self.auth, xml=restree)
 
 class VoidShipment(CallLinkService):
     """
