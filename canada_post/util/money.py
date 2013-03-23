@@ -1,10 +1,21 @@
+#!/usr/bin/env python
+
+## IMPORTS #####################################################################
+
 from decimal import Decimal
+
 from canada_post.util import InfoObject
+
+## CONSTANTS ###################################################################
 
 ZERO = Decimal("0.00")
 
+## FUNCTIONS ###################################################################
+
 def get_decimal(source):
     return Decimal(source or ZERO)
+
+## CLASSES #####################################################################
 
 class Adjustment(InfoObject):
     def __init__(self, xml_source=None, **kwargs):

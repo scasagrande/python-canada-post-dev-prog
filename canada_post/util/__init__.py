@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+## IMPORTS #####################################################################
+
+## CLASSES #####################################################################
+
 class InfoObject(object):
     def __init__(self, **kwargs):
         for k, v in kwargs.items():

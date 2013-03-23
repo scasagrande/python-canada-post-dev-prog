@@ -1,11 +1,27 @@
-VERSION = "0.0.4-1"
+#!/usr/bin/env python
+
 """
 Configuration module for the API. This defines whether to use the development
 or production credentials/urls (and what the credentials are).
 """
 
+## IMPORTS #####################################################################
+
+## CONSTANTS ###################################################################
+
+VERSION = "0.0.4-1"
 DEV = "DEV"
 PROD = "PROD"
+
+_auth = None
+
+## FUNCTIONS ###################################################################
+
+def set_credentials(customer_number, username, password, dev=PROD):
+    if _auth is None:
+        _auth = Auth(customer_number, username, password, dev)
+
+## CLASSES #####################################################################
 
 class Auth(object):
     USERNAME = {
@@ -34,8 +50,6 @@ class Auth(object):
     def password(self):
         return self.PASSWORD[self.dev]
 
-_auth = None
 
-def set_credentials(customer_number, username, password, dev=PROD):
-    if _auth is None:
-        _auth = Auth(customer_number, username, password, dev)
+
+

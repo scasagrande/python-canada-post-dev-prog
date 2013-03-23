@@ -1,13 +1,22 @@
+#!/usr/bin/env python
+
 """
 Shipping Canada Post API
 https://www.canadapost.ca/cpo/mc/business/productsservices/developers/services/shippingmanifest/default.jsf
 """
-import logging
-from lxml import etree
+
+## IMPORTS #####################################################################
+
 import requests
 import subprocess
+import logging
+
+from lxml import etree
+
 from canada_post.service import ServiceBase, CallLinkService
 from canada_post.util import InfoObject
+
+## CLASSES #####################################################################
 
 class Shipment(InfoObject):
     """

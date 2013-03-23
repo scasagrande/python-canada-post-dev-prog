@@ -1,4 +1,10 @@
+#!/usr/bin/env python
+
+## IMPORTS #####################################################################
+
 from canada_post.util import InfoObject
+
+## CLASSES #####################################################################
 
 class AddressBase(InfoObject):
     def __init__(self, postal_code, name=None, company=None, phone=None,

@@ -1,10 +1,18 @@
+#!/usr/bin/env python
+
 """
 Different Canada Post Developer Program services
 """
+
+## IMPORTS #####################################################################
+
+import requests
 import logging
+
 from canada_post import DEV, PROD
 from canada_post.util.money import Price, get_decimal, Adjustment
-import requests
+
+## CLASSES #####################################################################
 
 class ServiceBase(object):
     """

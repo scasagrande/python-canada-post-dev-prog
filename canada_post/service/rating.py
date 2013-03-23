@@ -1,12 +1,21 @@
+#!/usr/bin/env python
+
 """
 GetRates Canada Post API
 https://www.canadapost.ca/cpo/mc/business/productsservices/developers/services/rating/default.jsf
 """
-import logging
-from canada_post.service import ServiceBase, Service
-from lxml import etree
+
+## IMPORTS #####################################################################
+
 import requests
+import logging
+
+from lxml import etree
+
+from canada_post.service import ServiceBase, Service
 from canada_post import (DEV, PROD)
+
+## CLASSES #####################################################################
 
 class GetRates(ServiceBase):
     URL = "https://{server}/rs/ship/price"

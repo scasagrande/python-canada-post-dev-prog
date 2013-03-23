@@ -1,7 +1,14 @@
+#!/usr/bin/env python
+
 """
 Parcel module
 """
+
+## IMPORTS #####################################################################
+
 from canada_post.util import InfoObject
+
+## CLASSES #####################################################################
 
 class Parcel(InfoObject):
     """
