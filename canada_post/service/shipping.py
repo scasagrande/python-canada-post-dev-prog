@@ -62,6 +62,7 @@ class Shipment(InfoObject):
         #TODO: Guard against failures with above GET
         p = subprocess.Popen("lpr", stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         p.communicate(input=label.content)
+        return label.status_code
 
 class CreateShipment(ServiceBase):
     """
