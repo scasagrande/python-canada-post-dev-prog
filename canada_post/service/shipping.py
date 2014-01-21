@@ -222,7 +222,10 @@ class CreateShipment(ServiceBase):
         # TODO: expand on options, take this from a parameter
         options = add_child("options", delivery_spec)
         option = add_child("option", options)
-        add_child("option-code", option).text = "RTS"
+        if service.code[-2:] == 'XP':
+            add_child("option-code", option).text = "RASE"
+        else:
+            add_child("option-code", option).text = "RTS"
 
         # parcel
         parcel_chars = add_child("parcel-characteristics", delivery_spec)
