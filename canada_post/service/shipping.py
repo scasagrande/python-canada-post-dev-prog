@@ -219,8 +219,10 @@ class CreateShipment(ServiceBase):
         dest_details = self._create_address_detail(dest, destination, add_child, isSender = False)
         # done destination
 
-        # TODO: options
-        #options = add_child("options", delivery_spec)
+        # TODO: expand on options, take this from a parameter
+        options = add_child("options", delivery_spec)
+        option = add_child("option", options)
+        add_child("option-code", option).text = "RTS"
 
         # parcel
         parcel_chars = add_child("parcel-characteristics", delivery_spec)
