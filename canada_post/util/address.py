@@ -26,12 +26,16 @@ class AddressBase(InfoObject):
             else:
                 assert len(address) < 88, ("Street address can have up to 88 "
                                            "characters")
-                last_space_ix = address.rfind(" ", 0, 44)
-                self.address1 = address[:last_space_ix].strip()
-                self.address2 = address[last_space_ix:].strip()
-                assert len(self.address2) < 44, ("Must be able to split "
-                                                 "address in two 44 characters "
-                                                 "groups")
+                if len(address) > 44:
+                    last_space_ix = address.rfind(" ", 0, 44)
+                    self.address1 = address[:last_space_ix].strip()
+                    self.address2 = address[last_space_ix:].strip()
+                    assert len(self.address2) < 44, ("Must be able to split "
+                                                     "address in two 44 "
+                                                     "characters groups")
+                else:
+                    self.address1 = address
+                    self.address2 = None
         else:
             self.address1 = self.address2 = None
 

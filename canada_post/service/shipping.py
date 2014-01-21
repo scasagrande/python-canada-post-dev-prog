@@ -57,7 +57,7 @@ class Shipment(InfoObject):
                 attrname = child.tag.replace("-", "_")
                 setattr(self, attrname, child.text)
 
-    def printLabel(self):
+    def print_label(self):
         label = requests.get(self.links['label']['href'], auth=(self.auth.username,self.auth.password))
         #TODO: Guard against failures with above GET
         p = subprocess.Popen("lpr", stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -124,7 +124,7 @@ class CreateShipment(ServiceBase):
 
         return addr_detail
 
-    def __call__(self, parcel, origin, destination, service, group):
+    def __call__(self, parcel, origin, destination, service, group, customs = None):
         """
         Create a shipping order for the given parcels
 
@@ -135,6 +135,7 @@ class CreateShipment(ServiceBase):
             the code parameter set up
         group: must be a string or unicode defining the parcel group that this
             parcel should be added to
+        customs: must be a list of canada_post.util.item.Item
         """
         debug = "( DEBUG )" if self.auth.debug else ""
         self.log.info(("Create shipping for parcel %s, from %s to %s{debug}"
@@ -246,6 +247,23 @@ class CreateShipment(ServiceBase):
         # shippings
         add_child("show-postage-rate", preferences).text = "false"
         add_child("show-insured-value", preferences).text = "false"
+        
+        # Customs
+        if customs is not None:
+            customs_group = add_child('customs', delivery_spec)
+            add_child('currency', customs_group).text = 'CAD'
+            add_child('reason-for-export', customs_group).text = 'SOG'
+            sku_list = add_child('sku-list', customs_group)
+            for item in customs:
+                item_group = add_child('item', sku_list)
+                add_child('customs-number-of-units', item_group).text = unicode(item.number_of_units)
+                add_child('customs-description', item_group).text = item.description
+                add_child('unit-weight', item_group).text = unicode(item.unit_weight)
+                add_child('customs-value-per-unit', item_group).text = unicode(item.unit_value)
+                add_child('country-of-origin', item_group).text = item.origin_country
+                if item.origin_province is not None:
+                    add_child('province-of-origin', item_group).text = item.origin_province
+                #add_child('customs-unit-of-measure', item_group).text = 'PCE'
 
         # settlement-info
         if self.hasContract:
